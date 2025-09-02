@@ -1,4 +1,3 @@
-
 """
 Modern LLM Benchmarking Tool with Streamlit GUI
 """
@@ -397,7 +396,7 @@ def create_benchmark_charts(results_df: pd.DataFrame):
         showgrid=False
     )
     
-    st.plotly_chart(fig_output, use_container_width=True)
+    st.plotly_chart(fig_output, width='stretch')
     
     # Chart 2: Mean Prompt Speed
     st.subheader("⚡ Mean Prompt Processing Speed Comparison")
@@ -446,7 +445,7 @@ def create_benchmark_charts(results_df: pd.DataFrame):
         showgrid=False
     )
     
-    st.plotly_chart(fig_prompt, use_container_width=True)
+    st.plotly_chart(fig_prompt, width='stretch')
     
     # Chart 3: Scatter Plot - Output vs Prompt Speed
     st.subheader("🎯 Performance Correlation")
@@ -487,7 +486,7 @@ def create_benchmark_charts(results_df: pd.DataFrame):
         gridcolor='lightgray'
     )
     
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    st.plotly_chart(fig_scatter, width='stretch')
     
     # Performance Summary Cards
     st.subheader("📈 Performance Summary")
@@ -616,15 +615,15 @@ def main():
     
     insufficient_models = {
         model: memory for model, memory in models.items()
-        if gpu_info.total_memory / 1024 <= memory
-    }
+        if gpu_info.total_memory / 1024 <= memory }
+
     
     if available_models:
         df_available = pd.DataFrame([
             {"Model": model, "Memory Required (GB)": memory, "Status": "✅"}
             for model, memory in available_models.items()
         ])
-        st.dataframe(df_available, use_container_width=True)
+        st.dataframe(df_available, width='stretch')
     
     if insufficient_models:
         st.subheader("Insufficient Memory")
@@ -632,7 +631,7 @@ def main():
             {"Model": model, "Memory Required (GB)": memory, "Status": "❌ Insufficient Memory"}
             for model, memory in insufficient_models.items()
         ])
-        st.dataframe(df_insufficient, use_container_width=True)
+        st.dataframe(df_insufficient, width='stretch')
     
     # Model selection
     st.header("Select Models to Benchmark")
@@ -700,7 +699,7 @@ def main():
             
             # Show results table
             st.subheader("📋 Detailed Results Table")
-            st.dataframe(results_df, use_container_width=True)
+            st.dataframe(results_df, width='stretch')
             
             # Create and display charts
             create_benchmark_charts(results_df)
