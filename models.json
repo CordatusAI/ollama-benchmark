@@ -1,0 +1,12 @@
+{
+  "llama3.2:1b": 1.3,
+  "llama3.2:3b": 2.0,
+  "gemma3:4b": 3.3,
+  "gemma3:12b-it-qat":8.9,
+  "qwen3:14b": 9.3,
+  "gpt-oss:20b": 14,
+  "gemma3:27b": 17,
+  "qwen3:32b": 20,
+  "llama3:70b": 40,
+  "gpt-oss:120b": 65
+}

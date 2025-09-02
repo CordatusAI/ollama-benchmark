@@ -1,0 +1,2 @@
+Date,Model,Mean Output Speed (tokens/sec),Mean Prompt Speed (tokens/sec),GPU,GPU Memory (MB)
+2025-09-02 14:32,llama3.2:1b,227.492,17828.728,NVIDIA GeForce RTX 3090,24576
