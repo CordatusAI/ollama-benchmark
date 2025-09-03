@@ -1,9 +1,11 @@
 # 🚀 LLM Benchmark Tool
 
 A lightweight, real‑time Streamlit application for benchmarking large language models (LLMs) that are hosted with **Ollama**.
-The tool automatically detects your GPU, filters models by VRAM requirements, pulls missing models, runs a prompt‑based benchmark, and visualises the results with interactive Plotly charts.Overview
+The tool automatically detects your GPU, filters models by VRAM requirements, pulls missing models, runs a prompt‑based benchmark, and visualises the results with interactive Plotly charts.
 
 ![](images/ss_3.png)
+
+## Overview
 
 The **LLM Benchmark Tool** is a Streamlit web app that:
 
