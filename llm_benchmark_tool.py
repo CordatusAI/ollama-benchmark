@@ -593,8 +593,7 @@ def main():
         st.stop()
 
     if "log_placeholder" not in st.session_state:
-        with st.container(height= 500):
-            st.session_state.log_placeholder = st.sidebar.empty()
+        st.session_state.log_placeholder = st.sidebar.empty()
         
     # Main content
     st.header("Models compatible with GPU memory (VRAM) requirements")
