@@ -10,6 +10,7 @@ from datetime import datetime
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from collections import deque
 
 import ollama
 import pandas as pd
@@ -22,6 +23,32 @@ DEFAULT_OLLAMA_URL = "http://localhost:11434"
 # Session state'te client nesnesini saklamak için
 if "client" not in st.session_state:
     st.session_state.client = ollama.Client(host= DEFAULT_OLLAMA_URL)
+
+# Logları saklamak için bir liste
+if "logs" not in st.session_state:
+    st.session_state.logs = deque(maxlen= 5)
+
+def clear_logs():
+    st.session_state.log_placeholder.text_area(
+            label="Logs",
+            value="",
+            height=200,
+            disabled=True
+        )
+
+def add_log(msg):
+    print(msg)
+    st.session_state.logs.append(msg)
+    logs:list = list(st.session_state.logs)
+    logs.reverse()
+    log_text = "\n".join(logs)
+    st.session_state.log_placeholder.text_area(
+            label="Logs",
+            value=log_text,
+            height=200,
+            disabled=True
+        )
+    # st.session_state.log_placeholder.markdown(log_text)
 
 @dataclass
 class GPUInfo:
@@ -248,41 +275,41 @@ class LLMBenchmark:
         results = []
         existing_models = self.model_manager.get_existing_models()
         
-        print(f"🔍 Starting benchmark for {len(models)} models...")
+        add_log(f"🔍 Starting benchmark for {len(models)} models...")
         print("**Selected models:**", list(models.keys()))
-        print("**Existing models:**", existing_models)
+        print("**Existing models:**", existing_models)s
         
         for i, (model, memory_requirement) in enumerate(models.items()):
             if progress_callback:
                 progress_callback(i, len(models), f"Processing {model}")
             
-            print(f"📊 **Processing Model {i+1}/{len(models)}: {model}**")
+            add_log(f"📊 **Processing Model {i+1}/{len(models)}: {model}**")
             
             # Check memory requirement
             available_memory_gb = gpu_info.total_memory / 1024
             if available_memory_gb <= memory_requirement:
                 error_msg = f"❌ Insufficient memory for {model}. Required: {memory_requirement}GB, Available: {available_memory_gb:.1f}GB"
-                print(error_msg)
+                add_log(error_msg)
                 continue
             else:
-                print(f"✅ Memory check passed: {available_memory_gb:.1f}GB available, {memory_requirement}GB required")
+                add_log(f"✅ Memory check passed: {available_memory_gb:.1f}GB available, {memory_requirement}GB required")
             
             # Check if model exists (with smart name matching)
             actual_model_name = ModelManager.normalize_model_name(model, existing_models)
             if not actual_model_name:
-                print(f"⚠️ Model {model} not found in existing models.")
-                print("**Available models:**")
+                add_log(f"⚠️ Model {model} not found in existing models.")
+                add_log("**Available models:**")
                 for existing_model in existing_models:
-                    print(f"  - {existing_model}")
-                print("💡 **Tip:** Pull the model first using `ollama pull <model_name>`")
+                    add_log(f"  - {existing_model}")
+                add_log("💡 **Tip:** Pull the model first using `ollama pull <model_name>`")
                 continue
             else:
                 if actual_model_name != model:
-                    print(f"🔄 Using model name: `{actual_model_name}` (instead of `{model}`)")
-                print(f"✅ Model {actual_model_name} found and ready")
+                    add_log(f"🔄 Using model name: `{actual_model_name}` (instead of `{model}`)")
+                add_log(f"✅ Model {actual_model_name} found and ready")
             
             # Run benchmark with the actual model name
-            print(f"🚀 Running benchmark with {len(prompts)} prompts...")
+            add_log(f"🚀 Running benchmark with {len(prompts)} prompts...")
             total_output_speed = 0
             total_prompt_speed = 0
             successful_prompts = 0
@@ -292,17 +319,17 @@ class LLMBenchmark:
                     # print(f"  📝 Prompt {j+1}/{len(prompts)}: {prompt[:50]}...")
                     response_data = self.send_request(actual_model_name, prompt)  # Use actual name
                     if not response_data:
-                        print(f"❌ Failed to get response for prompt {j+1}")
+                        add_log(f"❌ Failed to get response for prompt {j+1}")
                         continue
                     
                     output_speed, prompt_speed = self.calculate_speed(response_data)
                     total_output_speed += output_speed
                     total_prompt_speed += prompt_speed
                     successful_prompts += 1
-                    print(f"  ✅ Prompt {j+1} completed - Output: {output_speed:.1f} tok/sec, Prompt: {prompt_speed:.1f} tok/sec")
+                    add_log(f"  ✅ Prompt {j+1} completed - Output: {output_speed:.1f} tok/sec, Prompt: {prompt_speed:.1f} tok/sec")                    
                     
                 except Exception as e:
-                    print(f"❌ Error processing prompt {j+1}: {str(e)}")
+                    add_log(f"❌ Error processing prompt {j+1}: {str(e)}")
                     continue
             
             if successful_prompts > 0:
@@ -318,24 +345,24 @@ class LLMBenchmark:
                 )
                 results.append(result)
                 
-                print(f"🎯 **{model} completed successfully!**")
-                print(f"  📊 Mean Output Speed: {mean_output_speed:.1f} tokens/sec")
-                print(f"  ⚡ Mean Prompt Speed: {mean_prompt_speed:.1f} tokens/sec")
-                print(f"  ✅ Successful prompts: {successful_prompts}/{len(prompts)}")
+                add_log(f"🎯 **{model} completed successfully!**")
+                add_log(f"  📊 Mean Output Speed: {mean_output_speed:.1f} tokens/sec")
+                add_log(f"  ⚡ Mean Prompt Speed: {mean_prompt_speed:.1f} tokens/sec")
+                add_log(f"  ✅ Successful prompts: {successful_prompts}/{len(prompts)}")
                 
             else:
-                print(f"❌ No successful prompts for {model}")
+                add_log(f"❌ No successful prompts for {model}")
             
             # Unload model
-            print(f"🔄 Unloading {actual_model_name}...")
+            add_log(f"🔄 Unloading {actual_model_name}...")
             if self.model_manager.unload_model(actual_model_name):
-                print(f"✅ {actual_model_name} unloaded successfully")
+                add_log(f"✅ {actual_model_name} unloaded successfully")
             else:
-                print(f"⚠️ Failed to unload {actual_model_name}")
+                add_log(f"⚠️ Failed to unload {actual_model_name}")
             
             print("---")  # Separator between models
         
-        print(f"🏁 Benchmark completed! Results for {len(results)}/{len(models)} models")
+        add_log(f"🏁 Benchmark completed! Results for {len(results)}/{len(models)} models")
         return results
 
 def create_benchmark_charts(results_df: pd.DataFrame):
@@ -525,22 +552,6 @@ def create_benchmark_charts(results_df: pd.DataFrame):
             "tokens/sec"
         )
 
-def create_default_prompts():
-    """Create default test prompts."""
-    default_prompts = [
-        "What is artificial intelligence?",
-        "Explain quantum computing in simple terms.",
-        "Write a short story about a robot.",
-        "What are the benefits of renewable energy?",
-        "How does machine learning work?"
-    ]
-    
-    with open("test_prompts.txt", "w") as f:
-        for prompt in default_prompts:
-            f.write(prompt + "\n")
-    
-    return default_prompts
-
 
 def main():
     """Main Streamlit application."""
@@ -603,7 +614,10 @@ def main():
     except Exception as e:
         st.sidebar.error(f"Error reading prompts file: {e}")
         st.stop()
-    
+
+    if "log_placeholder" not in st.session_state:
+        st.session_state.log_placeholder = st.sidebar.empty()
+        
     # Main content
     st.header("Models compatible with GPU memory (VRAM) requirements")
     
@@ -670,6 +684,7 @@ def main():
                     time.sleep(1)  # Brief pause between models
         
         # Run benchmark
+        clear_logs()
         results = benchmark.run_benchmark(
             selected_models,
             prompts,
