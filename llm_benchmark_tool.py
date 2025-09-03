@@ -233,7 +233,7 @@ class LLMBenchmark:
         self.model_manager = ModelManager()
     
     @staticmethod
-    def send_request(model_name: str, prompt: str) -> Optional[ollama.ChatResponse]:
+    def send_request(model_name: str, prompt: str, max_tokens:int= 64) -> Optional[ollama.ChatResponse]:
         """Send request to model and return response."""
         try:
             # st.write(f"    🔄 Sending request to {model_name}...")
@@ -242,7 +242,10 @@ class LLMBenchmark:
                 messages=[{
                     'role': 'user',
                     'content': prompt,
-                }]
+                }],
+            options={
+                "max_tokens": max_tokens
+                }                
             )
             # st.write(f"    ✅ Response received from {model_name}")
             return response
