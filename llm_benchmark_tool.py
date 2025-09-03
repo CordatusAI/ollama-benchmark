@@ -39,6 +39,20 @@ def add_log(msg):
     log_text = "\n".join(logs)
     st.session_state.log_placeholder.code(log_text,language="log")
 
+def check_ollama_status():
+    try:
+        response = requests.get(DEFAULT_OLLAMA_URL)
+        if response.status_code == 200 and "Ollama is running" in response.text:
+            print("Ollama is running!")
+            return
+        else:
+            st.error(f"Ollama is running but {response.status_code}")
+    except requests.ConnectionError:
+        st.error(f"Ollama is not running")
+    except Exception as e:
+        st.error(f"Ollama status check exception : {e}")
+    st.stop()
+
 @dataclass
 class GPUInfo:
     """Data class for GPU information."""
@@ -543,6 +557,7 @@ def create_benchmark_charts(results_df: pd.DataFrame):
 
 
 def main():
+    check_ollama_status()
     """Main Streamlit application."""
     # st.markdown(f'<style> .sidebar {{width: 90%;}} </style>', unsafe_allow_html=True)
     st.set_page_config(
