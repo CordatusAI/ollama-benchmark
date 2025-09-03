@@ -15,7 +15,6 @@ from collections import deque
 import ollama
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import requests
 import streamlit as st
 
@@ -29,12 +28,6 @@ if "logs" not in st.session_state:
     st.session_state.logs:deque = deque(maxlen= 10)
 
 def clear_logs():
-    # st.session_state.log_placeholder.text_area(
-    #         label="Logs",
-    #         value="",
-    #         height=200,
-    #         disabled=True
-    #     )
     st.session_state.logs.clear()
     st.session_state.log_placeholder.code("",language="log")
 
@@ -44,14 +37,6 @@ def add_log(msg):
     logs:list = list(st.session_state.logs)
     logs.reverse()
     log_text = "\n".join(logs)
-    # st.session_state.log_placeholder.text_area(
-    #         label="Logs",
-    #         value=log_text,
-    #         height=200,
-    #         disabled=True
-    #     )
-    # st.session_state.log_placeholder.markdown(f"**Logs**\n\n<pre>{log_text}</pre>", unsafe_allow_html=True)
-    # st.markdown()
     st.session_state.log_placeholder.code(log_text,language="log")
 
 @dataclass
@@ -580,18 +565,6 @@ def main():
     # GPU Information
     st.sidebar.subheader("GPU Information")
     gpu_info = None
-
-    # ollama_url = st.sidebar.text_input("Ollama URL:", value= DEFAULT_OLLAMA_URL)
-
-    # URL veya model değiştiğinde client'ı yeniden oluştur
-    # if st.session_state.client is None or st.session_state.get("last_url") != ollama_url:
-    #     try:
-    #         st.session_state.client = ollama.Client(host=ollama_url)
-    #         st.session_state.last_url = ollama_url
-    #         print("Ollama client başarıyla güncellendi!")
-    #     except Exception as e:
-    #         print(f"Client oluşturulurken hata oluştu: {e}")
-
 
     if SystemInfo.is_jetson_device():
         gpu_info = SystemInfo.jetson_get_gpu_info()
