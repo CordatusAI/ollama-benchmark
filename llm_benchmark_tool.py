@@ -26,15 +26,17 @@ if "client" not in st.session_state:
 
 # Logları saklamak için bir liste
 if "logs" not in st.session_state:
-    st.session_state.logs = deque(maxlen= 5)
+    st.session_state.logs:deque = deque(maxlen= 10)
 
 def clear_logs():
-    st.session_state.log_placeholder.text_area(
-            label="Logs",
-            value="",
-            height=200,
-            disabled=True
-        )
+    # st.session_state.log_placeholder.text_area(
+    #         label="Logs",
+    #         value="",
+    #         height=200,
+    #         disabled=True
+    #     )
+    st.session_state.logs.clear()
+    st.session_state.log_placeholder.code("",language="log")
 
 def add_log(msg):
     print(msg)
@@ -42,13 +44,15 @@ def add_log(msg):
     logs:list = list(st.session_state.logs)
     logs.reverse()
     log_text = "\n".join(logs)
-    st.session_state.log_placeholder.text_area(
-            label="Logs",
-            value=log_text,
-            height=200,
-            disabled=True
-        )
-    # st.session_state.log_placeholder.markdown(log_text)
+    # st.session_state.log_placeholder.text_area(
+    #         label="Logs",
+    #         value=log_text,
+    #         height=200,
+    #         disabled=True
+    #     )
+    # st.session_state.log_placeholder.markdown(f"**Logs**\n\n<pre>{log_text}</pre>", unsafe_allow_html=True)
+    # st.markdown()
+    st.session_state.log_placeholder.code(log_text,language="log")
 
 @dataclass
 class GPUInfo:
@@ -244,7 +248,7 @@ class LLMBenchmark:
             # st.write(f"    ✅ Response received from {model_name}")
             return response
         except Exception as e:
-            # st.error(f"    ❌ Error sending request to {model_name}: {e}")
+            add_log(f"❌ Error sending request to {model_name}: {e}")
             return None
     
     @staticmethod
@@ -277,7 +281,7 @@ class LLMBenchmark:
         
         add_log(f"🔍 Starting benchmark for {len(models)} models...")
         print("**Selected models:**", list(models.keys()))
-        print("**Existing models:**", existing_models)s
+        print("**Existing models:**", existing_models)
         
         for i, (model, memory_requirement) in enumerate(models.items()):
             if progress_callback:
@@ -300,8 +304,8 @@ class LLMBenchmark:
                 add_log(f"⚠️ Model {model} not found in existing models.")
                 add_log("**Available models:**")
                 for existing_model in existing_models:
-                    add_log(f"  - {existing_model}")
-                add_log("💡 **Tip:** Pull the model first using `ollama pull <model_name>`")
+                    print(f"  - {existing_model}")
+                print("💡 **Tip:** Pull the model first using `ollama pull <model_name>`")
                 continue
             else:
                 if actual_model_name != model:
@@ -326,7 +330,7 @@ class LLMBenchmark:
                     total_output_speed += output_speed
                     total_prompt_speed += prompt_speed
                     successful_prompts += 1
-                    add_log(f"  ✅ Prompt {j+1} completed - Output: {output_speed:.1f} tok/sec, Prompt: {prompt_speed:.1f} tok/sec")                    
+                    add_log(f"✅ Prompt {j+1} completed - Output: {output_speed:.1f} tok/sec, Prompt: {prompt_speed:.1f} tok/sec")                    
                     
                 except Exception as e:
                     add_log(f"❌ Error processing prompt {j+1}: {str(e)}")
@@ -346,9 +350,9 @@ class LLMBenchmark:
                 results.append(result)
                 
                 add_log(f"🎯 **{model} completed successfully!**")
-                add_log(f"  📊 Mean Output Speed: {mean_output_speed:.1f} tokens/sec")
-                add_log(f"  ⚡ Mean Prompt Speed: {mean_prompt_speed:.1f} tokens/sec")
-                add_log(f"  ✅ Successful prompts: {successful_prompts}/{len(prompts)}")
+                add_log(f"📊 Mean Output Speed: {mean_output_speed:.1f} tokens/sec")
+                add_log(f"⚡ Mean Prompt Speed: {mean_prompt_speed:.1f} tokens/sec")
+                add_log(f"✅ Successful prompts: {successful_prompts}/{len(prompts)}")
                 
             else:
                 add_log(f"❌ No successful prompts for {model}")
@@ -616,7 +620,8 @@ def main():
         st.stop()
 
     if "log_placeholder" not in st.session_state:
-        st.session_state.log_placeholder = st.sidebar.empty()
+        with st.container(height= 500):
+            st.session_state.log_placeholder = st.sidebar.empty()
         
     # Main content
     st.header("Models compatible with GPU memory (VRAM) requirements")
