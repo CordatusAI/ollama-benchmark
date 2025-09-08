@@ -18,13 +18,7 @@ import plotly.express as px
 import requests
 import streamlit as st
 
-
-
-is_dark = st.get_option("theme.base") == "dark"
-if is_dark :
-    color_mode = "Blues"
-else:
-    color_mode = "Jet"
+color_mode = "Jet"
 
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 # Session state'te client nesnesini saklamak için
