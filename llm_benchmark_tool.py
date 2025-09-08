@@ -18,6 +18,12 @@ import plotly.express as px
 import requests
 import streamlit as st
 
+is_dark = st.get_option("theme.base") == "dark"
+if is_dark :
+    color_mode = "Blues"
+else:
+    color_mode = "Jet"
+
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 # Session state'te client nesnesini saklamak için
 if "client" not in st.session_state:
@@ -65,6 +71,7 @@ class BenchmarkResult:
     """Data class for benchmark results."""
     gpu_name: str
     gpu_memory: int
+    gpu_usage: float
     model: str
     mean_output_speed: float
     mean_prompt_speed: float
@@ -224,6 +231,64 @@ class ModelManager:
             st.error(f"Error pulling model {model}: {e}")
             return False
 
+    @staticmethod
+    def warmup(model: str) -> bool:
+        """
+        Send a 1-token dummy request to warm up an Ollama model.
+        Returns True if successful, False otherwise.
+        """
+        print("warm_up")
+        try:
+            response = requests.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": model,
+                    "prompt": "ping",
+                    "num_predict": 1   # sadece 1 token üret
+                },
+                stream=True,
+                timeout=30
+            )
+            # İlk gelen satır yeterli
+            for line in response.iter_lines():
+                if line:
+                    return True
+            return False
+        except Exception as e:
+            print(f"Warmup failed: {e}")
+            return False
+        
+    # @staticmethod
+    def get_processor_details(model_name):
+        print("get_processor_details")
+        url = "http://localhost:11434/api/ps"        
+        try:
+            response = requests.get(url)
+            print(response)
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Her model için detaylı bilgi ekle
+                is_model_running = False
+                gpu_usage = 0
+                for model in data.get('models', []):
+                    print(model)
+                    if model.get('name') == model_name:
+                        size = model.get('size')
+                        size_vram = model.get('size_vram', 0)
+                        gpu_usage = 100 * size_vram / size
+                        is_model_running = True                        
+            
+                return {
+                    "status": "success",
+                    "is_model_running": is_model_running,
+                    "gpu_usage": gpu_usage
+                }
+            else:
+                return {"status": "error", "message": f"Hata: {response.status_code} - {response.text}"}
+        except Exception as e:
+            return {"status": "error", "message": f"Bağlantı hatası: {str(e)}"}
+
 
 class LLMBenchmark:
     """Main benchmarking class."""
@@ -316,6 +381,15 @@ class LLMBenchmark:
             
             # Run benchmark with the actual model name
             add_log(f"🚀 Running benchmark with {len(prompts)} prompts...")
+            if ModelManager.warmup(actual_model_name) == False :
+                add_log("Model Not working...")
+                continue
+            response = ModelManager.get_processor_details(actual_model_name)
+            if response['status'] == 'error' :
+                add_log(response['message'])
+                continue
+            gpu_usage = response['gpu_usage']
+            add_log(f"GPU usage % : {gpu_usage}")
             total_output_speed = 0
             total_prompt_speed = 0
             successful_prompts = 0
@@ -345,6 +419,7 @@ class LLMBenchmark:
                 result = BenchmarkResult(
                     gpu_name=gpu_info.name,
                     gpu_memory=gpu_info.total_memory,
+                    gpu_usage= gpu_usage,
                     model=model,
                     mean_output_speed=round(mean_output_speed, 3),
                     mean_prompt_speed=round(mean_prompt_speed, 3)
@@ -398,7 +473,7 @@ def create_benchmark_charts(results_df: pd.DataFrame):
             'Model': 'Model Name'
         },
         color='Mean Output Speed (tokens/sec)',
-        color_continuous_scale='Blues',
+        color_continuous_scale= color_mode,
         text='Mean Output Speed (tokens/sec)'
     )
     
@@ -447,7 +522,7 @@ def create_benchmark_charts(results_df: pd.DataFrame):
             'Model': 'Model Name'
         },
         color='Mean Prompt Speed (tokens/sec)',
-        color_continuous_scale='Blues',
+        color_continuous_scale= color_mode,
         text='Mean Prompt Speed (tokens/sec)'
     )
     
@@ -701,6 +776,7 @@ def main():
                     "Model": result.model,
                     "Mean Output Speed (tokens/sec)": result.mean_output_speed,
                     "Mean Prompt Speed (tokens/sec)": result.mean_prompt_speed,
+                    "GPU Usage": result.gpu_usage,
                     "GPU": result.gpu_name,
                     "GPU Memory (MB)": result.gpu_memory
                 }
