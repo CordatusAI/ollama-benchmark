@@ -18,6 +18,8 @@ import plotly.express as px
 import requests
 import streamlit as st
 
+
+
 is_dark = st.get_option("theme.base") == "dark"
 if is_dark :
     color_mode = "Blues"
@@ -32,6 +34,8 @@ if "client" not in st.session_state:
 # Logları saklamak için bir liste
 if "logs" not in st.session_state:
     st.session_state.logs:deque = deque(maxlen= 10)
+if "only_gpu" not in st.session_state:
+    st.session_state.only_gpu:bool = True
 
 def clear_logs():
     st.session_state.logs.clear()
@@ -390,6 +394,12 @@ class LLMBenchmark:
                 continue
             gpu_usage = response['gpu_usage']
             add_log(f"GPU usage % : {gpu_usage}")
+            if st.session_state.only_gpu and int(gpu_usage) == 100:
+                add_log(f" only gpu test ->> {st.session_state.only_gpu } { gpu_usage}")
+            else:
+                add_log(f" Not 100% GPU test skipping  : { gpu_usage}")
+                continue
+
             total_output_speed = 0
             total_prompt_speed = 0
             successful_prompts = 0
@@ -664,10 +674,13 @@ def main():
         st.sidebar.info("🎯 Jetson device detected")
     else:
         gpu_info = SystemInfo.get_gpu_info()
+
+    st.session_state.only_gpu = st.sidebar.checkbox("Use Only GPU", value= True)
     
     if gpu_info:
         st.sidebar.success(f"**GPU:** {gpu_info.name}")
         st.sidebar.success(f"**Memory:** {gpu_info.total_memory:,} MB ({gpu_info.total_memory/1024:.1f} GB)")
+        
     else:
         st.sidebar.error("⚠️ Could not detect GPU information")
         st.stop()
