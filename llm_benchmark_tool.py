@@ -245,7 +245,7 @@ class ModelManager:
                     "num_predict": 1   # sadece 1 token üret
                 },
                 stream=True,
-                timeout=30
+                timeout=1200
             )
             # İlk gelen satır yeterli
             for line in response.iter_lines():
@@ -307,7 +307,7 @@ class LLMBenchmark:
                     'content': prompt,
                 }],
             options={
-                "max_tokens": max_tokens
+                "num_predict": max_tokens
                 }                
             )
             # st.write(f"    ✅ Response received from {model_name}")
