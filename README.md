@@ -60,9 +60,15 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 # 3. Install Python dependencies
 pip install -r requirements.txt
 
+# If the device is a Jetson, also install jetson-stats on the system.
+pip install jetson-stats
+
 # 4. Install Ollama (if not already)
 #   - macOS/Linux: brew install ollama
 #   - Windows: download installer from https://ollama.ai
+ollama serve 
+# or use docker 
+# https://hub.docker.com/r/ollama/ollama
 ```
 
 > **Tip** – The app will automatically pull any missing models when you start a benchmark.
