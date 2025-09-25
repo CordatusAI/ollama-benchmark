@@ -31,6 +31,27 @@ if "logs" not in st.session_state:
 if "only_gpu" not in st.session_state:
     st.session_state.only_gpu:bool = True
 
+
+def drop_caches():
+    # https://github.com/ollama/ollama/issues/12283
+    cmd = f"echo 3 | sudo -S tee /proc/sys/vm/drop_caches"
+    process = subprocess.Popen(
+        cmd,
+        shell=True,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+
+    # Şifreyi gönder ve çıktıyı yakala
+    stdout, stderr = process.communicate(input=f"{st.session_state.sudo.strip()}\n")
+
+    # Çıktıyı yazdır
+    print("STDOUT:", stdout)
+    print("STDERR:", stderr)
+
+
 def clear_logs():
     st.session_state.logs.clear()
     st.session_state.log_placeholder.code("",language="log")
@@ -349,6 +370,10 @@ class LLMBenchmark:
         print("**Existing models:**", existing_models)
         
         for i, (model, memory_requirement) in enumerate(models.items()):
+            
+            if st.session_state.drop_caches:
+                drop_caches()
+
             if progress_callback:
                 progress_callback(i, len(models), f"Processing {model}")
             
@@ -670,6 +695,13 @@ def main():
         gpu_info = SystemInfo.get_gpu_info()
 
     st.session_state.only_gpu = st.sidebar.checkbox("Use Only GPU", value= True)
+
+    st.session_state.drop_caches = st.sidebar.checkbox("Drop Caches", value= False)
+    if st.session_state.drop_caches:
+        st.info("Must be write a sudo password")
+        st.session_state.sudo = st.sidebar.text_input("Sudo Passord:", type="password")
+
+
     
     if gpu_info:
         st.sidebar.success(f"**GPU:** {gpu_info.name}")
