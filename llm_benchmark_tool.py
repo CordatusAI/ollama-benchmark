@@ -32,39 +32,38 @@ if "only_gpu" not in st.session_state:
     st.session_state.only_gpu:bool = True
 
 
-def drop_caches() -> bool:
-    """
-    Drop page cache, dentries ve inodes.
-    - `sudo -S` şifreyi stdin’den okur.
-    - `sysctl -w vm.drop_caches=3` tek satırda 3 değerini yazar.
-    """
-    # Komut dizisi (shell=False)
-    cmd = ["sudo", "-S", "sysctl", "-w", "vm.drop_caches=3"]
+def drop_caches():
+    ret = True
+    sudo = st.session_state.sudo
+    # 1. adım: echo sudo
+    p1 = subprocess.Popen(['echo', sudo], stdout=subprocess.PIPE)
 
-    # stdin: önce şifre, sonra newline
-    stdin_data = f"{st.session_state.sudo}\n"
+    # 2. adım: sudo -S sysctl -w vm.drop_caches=3
+    p2 = subprocess.Popen(
+        ['sudo', '-S', 'sysctl', '-w', 'vm.drop_caches=3'],
+        stdin=p1.stdout,          # p1'in çıktısını stdin olarak ver
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
 
-    try:
-        result = subprocess.run(
-            cmd,
-            input=stdin_data,
-            capture_output=True,
-            text=True,
-            check=True
-        )
+    # p1'in stdout'u artık kullanılmadığı için kapatıyoruz
+    p1.stdout.close()
 
-        # stdout boş, stderr de boş ise başarılı
-        if result.stderr:
-            st.error(f"drop_caches hatası: {result.stderr.strip()}")
-            return False
-        else:
-            print("Drop : ",result)
-        return True
+    # Sonuçları al
+    stdout, stderr = p2.communicate()
+    if len(stderr) and 'Sorry' in stderr:
+        print("STDERR:", stderr)
+        st.toast(f"⚠️ {stderr}", icon="⚠️")
+        ret = False
+    else:
+        print("PASSED STDOUT:", stdout)
 
-    except subprocess.CalledProcessError as e:
-        # e.stderr içinde sudo’nun verdiği hata mesajı bulunur
-        st.error(f"drop_caches hatası: {e.stderr.strip()}")
-        return False
+    p2.stdout.close()
+    p3 = subprocess.Popen(['sudo', "-k"], stdout=subprocess.PIPE)
+    p3.stdout.close()
+
+    return ret
 
 
 def clear_logs():
@@ -388,7 +387,7 @@ class LLMBenchmark:
             
             if st.session_state.drop_caches:
                 if drop_caches() == False:
-                    st.error("Error drop caches ")
+                    st.error("Error drop caches not worked !")
                     break
 
             if progress_callback:
@@ -715,7 +714,7 @@ def main():
 
     st.session_state.drop_caches = st.sidebar.checkbox("Drop Caches", value= False)
     if st.session_state.drop_caches:
-        st.info("Must be write a sudo password")
+        st.sidebar.info("Must be write a sudo password")
         st.session_state.sudo = st.sidebar.text_input("Sudo Passord:", type="password")
 
 
