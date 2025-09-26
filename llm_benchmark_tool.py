@@ -32,24 +32,39 @@ if "only_gpu" not in st.session_state:
     st.session_state.only_gpu:bool = True
 
 
-def drop_caches():
-    # https://github.com/ollama/ollama/issues/12283
-    cmd = f"echo 3 | sudo -S tee /proc/sys/vm/drop_caches"
-    process = subprocess.Popen(
-        cmd,
-        shell=True,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+def drop_caches() -> bool:
+    """
+    Drop page cache, dentries ve inodes.
+    - `sudo -S` şifreyi stdin’den okur.
+    - `sysctl -w vm.drop_caches=3` tek satırda 3 değerini yazar.
+    """
+    # Komut dizisi (shell=False)
+    cmd = ["sudo", "-S", "sysctl", "-w", "vm.drop_caches=3"]
 
-    # Şifreyi gönder ve çıktıyı yakala
-    stdout, stderr = process.communicate(input=f"{st.session_state.sudo.strip()}\n")
+    # stdin: önce şifre, sonra newline
+    stdin_data = f"{st.session_state.sudo}\n"
 
-    # Çıktıyı yazdır
-    print("STDOUT:", stdout)
-    print("STDERR:", stderr)
+    try:
+        result = subprocess.run(
+            cmd,
+            input=stdin_data,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        # stdout boş, stderr de boş ise başarılı
+        if result.stderr:
+            st.error(f"drop_caches hatası: {result.stderr.strip()}")
+            return False
+        else:
+            print("Drop : ",result)
+        return True
+
+    except subprocess.CalledProcessError as e:
+        # e.stderr içinde sudo’nun verdiği hata mesajı bulunur
+        st.error(f"drop_caches hatası: {e.stderr.strip()}")
+        return False
 
 
 def clear_logs():
@@ -372,7 +387,9 @@ class LLMBenchmark:
         for i, (model, memory_requirement) in enumerate(models.items()):
             
             if st.session_state.drop_caches:
-                drop_caches()
+                if drop_caches() == False:
+                    st.error("Error drop caches ")
+                    break
 
             if progress_callback:
                 progress_callback(i, len(models), f"Processing {model}")
