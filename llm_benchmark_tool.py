@@ -277,10 +277,12 @@ class ModelManager:
                 json={
                     "model": model,
                     "prompt": "ping",
+                    "keep_alive": -1,
                     "num_predict": 1   # sadece 1 token üret
                 },
                 stream=True,
-                timeout=1200
+                
+                # timeout=1200
             )
             # İlk gelen satır yeterli
             for line in response.iter_lines():
