@@ -237,7 +237,7 @@ class ModelManager:
             headers = {'Content-Type': 'application/json'}
             data = json.dumps({"model": model, "keep_alive": 0})
             
-            response = requests.post(url, headers=headers, data=data, timeout=30)
+            response = requests.post(url, headers=headers, data=data)
             return response.status_code == 200
         except requests.RequestException as e:
             st.warning(f"Error unloading model {model}: {e}")
