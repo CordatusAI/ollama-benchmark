@@ -121,6 +121,7 @@ class SystemInfo:
     @staticmethod
     def get_gpu_info() -> Optional[GPUInfo]:
         """Get GPU information using nvidia-smi."""
+        print("Hello")
         try:
             result = subprocess.run(
                 ['nvidia-smi', '--query-gpu=name,memory.total', '--format=csv,noheader,nounits'],
@@ -129,17 +130,52 @@ class SystemInfo:
                 check=True,
                 text=True
             )
-            
+            print(result)
             lines = result.stdout.strip().split('\n')
             if lines:
                 output = lines[0].split(',')
+                print(output)
+
+                # Try to parse GPU memory
+                try:
+                    total_memory = int(output[1].strip())
+                except (IndexError, ValueError):
+                    # If GPU memory cannot be read, fall back to system memory
+                    print("GPU memory not available, falling back to system memory")
+                    try:
+                        # Get system memory using 'free' command (Linux)
+                        mem_result = subprocess.run(
+                            ['free', '-m'],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            check=True,
+                            text=True
+                        )
+                        # Parse system memory (in MB)
+                        mem_lines = mem_result.stdout.strip().split('\n')
+                        if len(mem_lines) >= 2:
+                            # Second line contains memory info: total, used, free, etc.
+                            # The first word is usually "Mem:" so we skip it
+                            mem_values = mem_lines[1].split()
+                            if len(mem_values) >= 2:  # Make sure we have at least total and available
+                                # First value after "Mem:" is total memory in MB
+                                total_memory = int(mem_values[1])
+                                print(f"Using system memory: {total_memory} MB")
+                            else:
+                                total_memory = 0
+                        else:
+                            total_memory = 0
+                    except (subprocess.CalledProcessError, IndexError, ValueError) as mem_e:
+                        print(f"Error getting system memory: {mem_e}")
+                        total_memory = 0
+
                 return GPUInfo(
                     name=output[0].strip(),
-                    total_memory=int(output[1].strip())
+                    total_memory=total_memory
                 )
         except (subprocess.CalledProcessError, IndexError, ValueError) as e:
-            st.error(f"Error getting GPU info: {e}")
-        
+            print(f"Error getting GPU info: {e}")
+
         return None
     
     @staticmethod
